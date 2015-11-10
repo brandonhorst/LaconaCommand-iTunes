@@ -1,7 +1,7 @@
 /** @jsx createElement */
 import _ from 'lodash'
 import {createElement, Phrase} from 'lacona-phrase'
-import {Applescript} from 'LaconaCommand-OSX'
+import {Applescript} from 'lacona-command-osx'
 
 // class MusicSource extends Source {
 //   fetch () {
