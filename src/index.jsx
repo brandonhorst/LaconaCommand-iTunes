@@ -3,67 +3,7 @@ import _ from 'lodash'
 import {createElement, Phrase} from 'lacona-phrase'
 import {Applescript} from 'lacona-command-osx'
 
-// class MusicSource extends Source {
-//   fetch () {
-//     if (this.fetched) {
-//       return
-//     } else {
-//       this.fetched = true
-//     }
-//
-//     osa(list).then(([result]) => {
-//       if (Array.isArray(result)) {
-//         const everything = _.chain(result)
-//           .unzip()
-//           .map(([name, album, artist, albumArtist, composer, genre, id]) => {
-//             return {name, album, artist, albumArtist, composer, genre, id}
-//           }).value()
-//
-//         const tracks = _.map(everything, track => _.pick(track, ['name', 'id']))
-//
-//         const artists = _.chain(everything)
-//           .map(track => ({artist: track.albumArtist || track.artist, id: track.id}))
-//           .groupBy(_.property('artist'))
-//           .mapValues(valueList => _.map(valueList, _.property('id')))
-//           .value()
-//
-//         const albums = _.chain(everything)
-//           .map(track => _.pick(track, ['album', 'id']))
-//           .groupBy(_.property('album'))
-//           .mapValues(valueList => _.map(valueList, _.property('id')))
-//           .value()
-//
-//         const composers = _.chain(everything)
-//           .map(track => _.pick(track, ['composer', 'id']))
-//           .groupBy(_.property('composer'))
-//           .mapValues(valueList => _.map(valueList, _.property('id')))
-//           .value()
-//
-//         const genres = _.chain(everything)
-//           .map(track => _.pick(track, ['genre', 'id']))
-//           .groupBy(_.property('genre'))
-//           .mapValues(valueList => _.map(valueList, _.property('id')))
-//           .value()
-//
-//         this.setData({tracks, artists, albums, composers, genres})
-//       }
-//     }).catch(console.error)
-//   }
-
-//   create () {
-//     this.fetched = false
-//     this.replaceData({
-//       tracks: [],
-//       artists: {},
-//       albums: {},
-//       composers: {},
-//       genres: {},
-//       fetch: _.debounce(this.fetch.bind(this), 2000, {leading: true})
-//     })
-//   }
-// }
-
-export function execute (results) {
+export function executeSpecific (results) {
   console.log(results)
   // if (results.ids) {
   //   const command = `tell application "iTunes"
@@ -96,13 +36,9 @@ const script = `
   return allMusic
 `
 
-export class Sentence extends Phrase {
+class PlaySpecific extends Phrase {
   source () {
     return {music: <Applescript code={script} keys={['name', 'album', 'artist', 'albumArtist', 'composer', 'genre', 'id']} fetchOn='triggerOnce' />}
-  }
-
-  trigger (input) {
-    this.sources.music.trigger()
   }
 
   describe () {
@@ -127,7 +63,7 @@ export class Sentence extends Phrase {
     return (
       <sequence>
         <literal text='play ' category='action' />
-        <descriptor trigger={this.trigger.bind(this)}>
+        <descriptor trigger={this.sources.music.trigger.bind(this.sources.music)}>
           <choice id='ids'>
             <argument text='song'>
               <list items={tracks} fuzzy={true} limit={10} />
@@ -146,107 +82,58 @@ export class Sentence extends Phrase {
             </argument>
           </choice>
         </descriptor>
+        <literal text=' shuffled' optional={true} category='action' />
       </sequence>
     )
   }
 }
 
-// class Play extends Phrase {
-//   execute (results) {
-//     execString('tell application "iTunes" play')
-//   }
-//
-//   describe () {
-//     return (
-//       <sequence>
-//         <literal text='play ' category='action' />
-//         <placeholder descriptor='current song' category='symbol'>
-//           <choice limit={1}>
-//             <literal text='current song' />
-//             <literal text='current track' />
-//             <literal text='music' />
-//           </choice>
-//         </placeholder>
-//       </sequence>
-//     )
-//   }
-// }
-//
-// class Pause extends Phrase {
-//   execute (results) {
-//     execString('tell application "iTunes" to pause')
-//   }
-//
-//   describe () {
-//     return (
-//       <sequence>
-//         <literal text='pause ' category='action' />
-//         <choice category='argument5 symbol' limit={1}>
-//           <literal text='current song' />
-//           <literal text='current track' />
-//           <literal text='music' />
-//           <literal text='this song' />
-//         </choice>
-//       </sequence>
-//     )
-//   }
-// }
-//
-// class Next extends Phrase {
-//   execute (results) {
-//     execString('tell application "iTunes" to next track')
-//   }
-//
-//   describe () {
-//     return (
-//       <choice limit={1}>
-//         <sequence>
-//           <literal text='play ' category='action' />
-//           <placeholder descriptor='next song' category='symbol'>
-//             <choice limit={1}>
-//               <literal text='next song' />
-//               <literal text='next track' />
-//             </choice>
-//           </placeholder>
-//         </sequence>
-//         <sequence>
-//           <literal text='skip ' category='action' />
-//           <literal text='current song' category='symbol' />
-//         </sequence>
-//       </choice>
-//     )
-//   }
-// }
-//
-// class Previous extends Phrase {
-//   execute (results) {
-//     execString('tell application "iTunes" to previous track')
-//   }
-//
-//   describe () {
-//     return (
-//       <sequence>
-//         <literal text='play ' category='action' />
-//         <placeholder descriptor='previous song' category='symbol'>
-//           <choice limit={1}>
-//             <literal text='previous song' />
-//             <literal text='previous track' />
-//             <literal text='last track' />
-//           </choice>
-//         </placeholder>
-//       </sequence>
-//     )
-//   }
-// }
-//
-// export default {
-//   sentences: [Play, Pause, Next, Previous, PlaySongs],
-//   translations: [{
-//     langs: ['en', 'default'],
-//     information: {
-//       title: 'Play iTunes Music',
-//       description: 'Play music in iTunes, and control the currently playing music',
-//       examples: ['play The Reign of Kindo', 'pause current track', 'play next track', 'play previous track']
-//     }
-//   }]
-// }
+function executeControl (result) {
+  if (result.verb === 'play') {
+    execString('tell application "iTunes" play')
+  } else if (result.verb === 'next') {
+    execString('tell application "iTunes" to next track')
+  } else if (result.verb === 'previous') {
+    execString('tell application "iTunes" to previous track')
+  } else if (result.verb === 'pause') {
+    execString('tell application "iTunes" to pause')
+  } else if (result.verb === 'stop') {
+    execString('tell application "iTunes" to stop')
+  }
+}
+
+class Control extends Phrase {
+  describe () {
+    return (
+      <choice>
+        <sequence>
+          <literal text='play ' category='action' />
+          <choice merge={true} id='verb' limit={2}>
+            <list items={['current song', 'current track', 'music']} value='play' limit={1} category='action' />
+            <list items={['next song', 'next track']} value='next' limit={1} category='action' />
+            <list items={['previous song', 'previous track', 'last song', 'last track']} value='previous' limit={1} category='action' />
+          </choice>
+        </sequence>
+        <sequence value={{verb: 'pause'}}>
+          <literal text='pause ' category='action' />
+          <list items={['current song', 'current track', 'music']} limit={1} category='action' />
+        </sequence>
+        <sequence value={{verb: 'next'}}>
+          <literal text='skip ' category='action' />
+          <list items={['current song', 'current track']} limit={1} category='action' />
+        </sequence>
+        <sequence value={{verb: 'stop'}}>
+          <literal text='stop ' category='action' />
+          <list items={['current song', 'current track']} limit={1} category='action' />
+        </sequence>
+      </choice>
+    )
+  }
+}
+
+export default {
+  sentences: [
+    {Sentence: PlaySpecific, execute: executeSpecific},
+    {Sentence: Control, execute: executeControl}
+  ]
+}
