@@ -3,11 +3,8 @@
   "version": "0.0.1",
   "description": "Lacona Command to play media in iTunes",
   "main": "lib/index.js",
-  "os": [
-    "osx"
-  ],
   "scripts": {
-    "build": "babel src --out-dir lib",
+    "build": "babel --stage 0 src --out-dir lib",
     "clean": "rimraf lib",
     "prepublish": "npm run clean && npm run build"
   },
@@ -33,13 +30,13 @@
   "homepage": "https://github.com/brandonhorst/lacona-command-itunes",
   "dependencies": {
     "lacona-command-osx": "0.0.1",
-    "lacona-phrase": "^0.7.0",
+    "lacona-phrase": "^0.9.1",
     "lodash": "^3.10.1"
   },
   "devDependencies": {
     "babel": "^5.8.29",
-    "chai": "^3.4.0",
-    "mocha": "^2.3.3",
-    "rimraf": "^2.4.3"
+    "chai": "^3.4.1",
+    "mocha": "^2.3.4",
+    "rimraf": "^2.5.0"
   }
 }
