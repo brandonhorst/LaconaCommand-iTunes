@@ -1,251 +1,210 @@
 /** @jsx createElement */
 import _ from 'lodash'
-import { createElement, Phrase, Source } from 'lacona-phrase'
+import { createElement } from 'elliptical'
 import { isDemo, fetchMusic, playSongIds, musicPlay, musicPause, musicNext, musicPrevious, musicStop } from 'lacona-api'
 import { Command } from 'lacona-command'
+import { playDemoExecute, controlDemoExecute } from './demo'
+import { Observable } from 'rxjs/Observable'
+import { switchMap } from 'rxjs/operator/switchMap'
+import { mergeMap } from 'rxjs/operator/mergeMap'
+import { first } from 'rxjs/operator/first'
+import { startWith } from 'rxjs/operator/startWith'
 
-function andify (array) {
-  if (array.length === 1) {
-    return array
-  } else {
-    return _.chain(array)
-      .slice(0, -2)
-      .map(item => [item, {text: ', '}])
-      .flatten()
-      .concat(_.slice(array, -2, -1)[0])
-      .concat({text: ' and '})
-      .concat(_.slice(array, -1)[0])
-      .value()
+const Music = {
+  fetch ({activate}) {
+    let tapObserver
+    const tap = new Observable(observer => { tapObserver = observer })
+    const update = () => tapObserver.next()
+
+    return activate
+      ::mergeMap(() => {
+        return tap::first()
+      })
+      ::switchMap(() => {
+        return new Observable(observer => {
+          fetchMusic((err, music) => {
+            process.nextTick(() => {
+              if (err) {
+                observer.error({update, music: []})
+              } else {
+                observer.next({update, music})
+                observer.complete()
+              }
+            })
+          })
+        })
+      })
+      ::startWith({update, music: []})
+
+    // /*
+    // The first time that tap emits after activate emits, call the callback
+    // */
+
+    // const onActivate = activate::switchMap(() => {
+    //   let called = false
+    //   return new Observable((observer) => {
+    //     function update () {
+    //       if (!called) {
+    //         called = true
+    //         process.nextTick(() => {
+    //         })
+    //       }
+    //     }
+
+    //   })
+    // })
+
+    // return onActivate::startWith({update, music: []})
   }
 }
+// class Music extends Source {
+//   data = []
 
-class MusicObject {
-  constructor ({music}) {
-    this.music = music
-  }
+//   onCreate () {
+//     if (isDemo()) {
+//       this.fetch()
+//     }
+//   }
 
-  _demoExecute () {
-    const descriptions = _.map(this.music, ({song, album, artist, genre, playlist, composer}) => {
-      if (song) {
-        return {text: song, argument: 'song'}
-      } else if (album) {
-        return [{text: 'all songs on '}, {text: album, argument: 'album'}]
-      } else if (artist) {
-        return [{text: 'all songs by '}, {text: artist, argument: 'artist'}]
-      } else if (genre) {
-        return [{text: 'all songs in the '}, {text: genre, argument: 'genre'}, {text: 'genre'}]
-      } else if (playlist) {
-        return [{text: 'all songs in the '}, {text: playlist, argument: 'playlist'}, {text: 'playlist'}]
-      } else if (composer) {
-        return [{text: 'all songs composed by '}, {text: composer, argument: 'composer'}]
-      }
-    })
+//   fetch () {
+//     fetchMusic((err, music) => {
+//       if (err) {
+//         console.error(err)
+//       } else {
+//         this.setData(music)
+//       }
+//     })
+//   }
 
-    return _.flattenDeep([
-      {text: 'play ', category: 'action'},
-      andify(descriptions),
-      {text: ' in ', category: 'conjunction'},
-      {text: ' iTunes', argument: 'application'}
-    ])
-  }
+//   onActivate () {
+//     this.setData([])
+//   }
 
-  execute () {
-    const ids = _.chain(this.music).map('ids').flatten().value()
+//   trigger () {
+//     if (_.isEmpty(this.data)) {
+//       this.fetch()
+//     }
+//   }
+// }
+
+export const PlaySpecific = {
+  extends: [Command],
+
+  demoExecute: playDemoExecute,
+
+  execute (result) {
+    const ids = _.chain(result.music).map('ids').flatten().value()
     playSongIds({ids})
-  }
-}
-
-class Music extends Source {
-  data = []
-
-  onCreate () {
-    if (isDemo()) {
-      this.fetch()
-    }
-  }
-
-  fetch () {
-    fetchMusic((err, music) => {
-      if (err) {
-        console.error(err)
-      } else {
-        this.setData(music)
-      }
-    })
-  }
-
-  onActivate () {
-    this.setData([])
-  }
-
-  trigger () {
-    if (_.isEmpty(this.data)) {
-      this.fetch()
-    }
-  }
-}
-
-class PlaySpecific extends Phrase {
-  static extends = [Command]
+  },
 
   observe () {
     return <Music />
-  }
+  },
 
-  describe () {
-    const tracks = _.chain(this.source.data)
+  describe ({data}) {
+    const tracks = _.chain(data.music)
       .filter('name')
       .map(({name, id}) => ({text: name, value: {song: name, ids: [id]}}))
       .value()
-    const albums = _.chain(this.source.data)
+    const albums = _.chain(data.music)
       .filter('album')
       .groupBy('album')
       .map((albumItems, album) => ({text: album, value: {album, ids: _.map(albumItems, 'id')}}))
       .value()
-    const artists = _.chain(this.source.data)
+    const artists = _.chain(data.music)
       .filter('artist')
       .groupBy('artist')
       .map((artistItems, artist) => ({text: artist, value: {artist, ids: _.map(artistItems, 'id')}}))
       .value()
-    const genres = _.chain(this.source.data)
+    const genres = _.chain(data.music)
       .filter('genre')
       .groupBy('genre')
       .map((genreItems, genre) => ({text: genre, value: {genre, ids: _.map(genreItems, 'id')}}))
       .value()
-    const composers = _.chain(this.source.data)
+    const composers = _.chain(data.music)
       .filter('composer')
       .groupBy('composer')
       .map((composerItems, composer) => ({text: composer, value: {composer, ids: _.map(composerItems, 'id')}}))
       .value()
 
+    function callUpdate (option) {
+      if (option.text != null) {
+        data.update()
+      }
+    }
+      // function={this.source.trigger.bind(this.source)
     return (
-      <map function={result => new MusicObject(result)}>
-        <sequence>
-          <literal text='play ' category='action' />
-          <tap id='music' function={this.source.trigger.bind(this.source)}>
-            <repeat unique separator={<list items={[' and ', ', ', ', and ']} limit={1} />}>
-              <choice>
-                <label text='song'>
-                  <list items={tracks} fuzzy={true} limit={10} />
-                </label>
-                <label text='album'>
-                  <list items={albums} fuzzy={true} limit={10} />
-                </label>
-                <label text='artist'>
-                  <list items={artists} fuzzy={true} limit={10} />
-                </label>
-                <label text='genre'>
-                  <list items={genres} fuzzy={true} limit={10} />
-                </label>
-                <label text='composer'>
-                  <list items={composers} fuzzy={true} limit={10} />
-                </label>
-              </choice>
-            </repeat>
-          </tap>
-        </sequence>
-      </map>
+      <sequence>
+        <literal text='play ' category='action' />
+        <tap inbound={callUpdate} id='music'>
+          <repeat unique separator={<list items={[' and ', ', ', ', and ']} limit={1} />}>
+            <choice>
+              <label text='song'>
+                <list items={tracks} strategy='fuzzy' limit={10} />
+              </label>
+              <label text='album'>
+                <list items={albums} strategy='fuzzy' limit={10} />
+              </label>
+              <label text='artist'>
+                <list items={artists} strategy='fuzzy' limit={10} />
+              </label>
+              <label text='genre'>
+                <list items={genres} strategy='fuzzy' limit={10} />
+              </label>
+              <label text='composer'>
+                <list items={composers} strategy='fuzzy' limit={10} />
+              </label>
+            </choice>
+          </repeat>
+        </tap>
+      </sequence>
     )
   }
-
-  // filter ({ids, shuffled}) {
-  //   if (shuffled && ids && ids.length === 1) {
-  //     return false
-  //   }
-  //   return true
-  // }
 }
 
-class ControlObject {
-  constructor ({verb}) {
-    this.verb = verb
-  }
+export const Control = {
+  extends: [Command],
 
-  _demoExecute () {
-    if (this.verb === 'play') {
-      return [
-        {text: 'play ', category: 'action'},
-        {text: 'the current song', category: 'argument5'},
-        {text: ' in '},
-        {text: 'iTunes', argument: 'application'}
-      ]
-    } else if (this.verb === 'next') {
-      return [
-        {text: 'play ', category: 'action'},
-        {text: 'the next song', category: 'argument5'},
-        {text: ' in '},
-        {text: 'iTunes', argument: 'application'}
-      ]
+  demoExecute: controlDemoExecute,
 
-    } else if (this.verb === 'previous') {
-      return [
-        {text: 'play ', category: 'action'},
-        {text: 'the previous song', category: 'argument5'},
-        {text: ' in '},
-        {text: 'iTunes', argument: 'application'}
-      ]
-
-    } else if (this.verb === 'stop') {
-      return [
-        {text: 'stop playing music ', category: 'action'},
-        {text: ' in '},
-        {text: 'iTunes', argument: 'application'}
-      ]
-
-    } else if (this.verb === 'pause') {
-      return [
-        {text: 'pause ', category: 'action'},
-        {text: 'the current song', category: 'argument5'},
-        {text: ' in '},
-        {text: 'iTunes', argument: 'application'}
-      ]
-    }
-  }
-
-  execute () {
-    if (this.verb === 'play') {
+  execute (result) {
+    if (result.verb === 'play') {
       musicPlay()
-    } else if (this.verb === 'next') {
+    } else if (result.verb === 'next') {
       musicNext()
-    } else if (this.verb === 'previous') {
+    } else if (result.verb === 'previous') {
       musicPrevious()
-    } else if (this.verb === 'pause') {
+    } else if (result.verb === 'pause') {
       musicPause()
-    } else if (this.verb === 'stop') {
+    } else if (result.verb === 'stop') {
       musicStop()
     }
-  }
-}
-
-class Control extends Phrase {
-  static extends = [Command]
+  },
 
   describe () {
     return (
-      <map function={result => new ControlObject(result)}>
-        <choice>
-          <sequence>
-            <literal text='play ' category='action' />
-            <choice merge={true} id='verb' limit={2}>
-              <list items={['current song', 'current track', 'music']} value='play' limit={1} category='action' />
-              <list items={['previous song', 'previous track', 'last song', 'last track']} value='previous' limit={1} category='action' />
-              <list items={['next song', 'next track']} value='next' limit={1} category='action' />
-            </choice>
-          </sequence>
-          <sequence value={{verb: 'pause'}}>
-            <literal text='pause ' category='action' />
-            <list items={['current song', 'current track', 'music']} limit={1} category='action' />
-          </sequence>
-          <sequence value={{verb: 'next'}}>
-            <literal text='skip ' category='action' />
-            <list items={['current song', 'current track']} limit={1} category='action' />
-          </sequence>
-          <sequence value={{verb: 'stop'}}>
-            <literal text='stop ' category='action' />
-            <list items={['current song', 'current track']} limit={1} category='action' />
-          </sequence>
-        </choice>
-      </map>
+      <choice>
+        <sequence>
+          <literal text='play ' category='action' />
+          <choice merge={true} id='verb' limit={2}>
+            <list items={['current song', 'current track', 'music']} value='play' limit={1} category='action' />
+            <list items={['previous song', 'previous track', 'last song', 'last track']} value='previous' limit={1} category='action' />
+            <list items={['next song', 'next track']} value='next' limit={1} category='action' />
+          </choice>
+        </sequence>
+        <sequence value={{verb: 'pause'}}>
+          <literal text='pause ' category='action' />
+          <list items={['current song', 'current track', 'music']} limit={1} category='action' />
+        </sequence>
+        <sequence value={{verb: 'next'}}>
+          <literal text='skip ' category='action' />
+          <list items={['current song', 'current track']} limit={1} category='action' />
+        </sequence>
+        <sequence value={{verb: 'stop'}}>
+          <literal text='stop ' category='action' />
+          <list items={['current song', 'current track']} limit={1} category='action' />
+        </sequence>
+      </choice>
     )
   }
 }
