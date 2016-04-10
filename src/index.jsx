@@ -12,80 +12,40 @@ import { startWith } from 'rxjs/operator/startWith'
 
 const Music = {
   fetch ({activate}) {
-    let tapObserver
-    const tap = new Observable(observer => { tapObserver = observer })
-    const update = () => tapObserver.next()
-
-    return activate
-      ::mergeMap(() => {
-        return tap::first()
+    if (isDemo()) {
+      return new Observable(observer => {
+        fetchMusic((err, music) => {
+          observer.next({update: () => {}, music})
+          observer.complete()
+        })
       })
-      ::switchMap(() => {
-        return new Observable(observer => {
-          fetchMusic((err, music) => {
-            process.nextTick(() => {
-              if (err) {
-                observer.error({update, music: []})
-              } else {
-                observer.next({update, music})
-                observer.complete()
-              }
+    } else {
+      let tapObserver
+      const tap = new Observable(observer => { tapObserver = observer })
+      const update = () => tapObserver.next()
+
+      return activate
+        ::mergeMap(() => {
+          return tap::first()
+        })
+        ::switchMap(() => {
+          return new Observable(observer => {
+            fetchMusic((err, music) => {
+              process.nextTick(() => {
+                if (err) {
+                  observer.error({update, music: []})
+                } else {
+                  observer.next({update, music})
+                  observer.complete()
+                }
+              })
             })
           })
         })
-      })
-      ::startWith({update, music: []})
-
-    // /*
-    // The first time that tap emits after activate emits, call the callback
-    // */
-
-    // const onActivate = activate::switchMap(() => {
-    //   let called = false
-    //   return new Observable((observer) => {
-    //     function update () {
-    //       if (!called) {
-    //         called = true
-    //         process.nextTick(() => {
-    //         })
-    //       }
-    //     }
-
-    //   })
-    // })
-
-    // return onActivate::startWith({update, music: []})
+        ::startWith({update, music: []})
+    }
   }
 }
-// class Music extends Source {
-//   data = []
-
-//   onCreate () {
-//     if (isDemo()) {
-//       this.fetch()
-//     }
-//   }
-
-//   fetch () {
-//     fetchMusic((err, music) => {
-//       if (err) {
-//         console.error(err)
-//       } else {
-//         this.setData(music)
-//       }
-//     })
-//   }
-
-//   onActivate () {
-//     this.setData([])
-//   }
-
-//   trigger () {
-//     if (_.isEmpty(this.data)) {
-//       this.fetch()
-//     }
-//   }
-// }
 
 export const PlaySpecific = {
   extends: [Command],
