@@ -1,8 +1,9 @@
 /** @jsx createElement */
-import _ from 'lodash'
 import { createElement } from 'elliptical'
-import { isDemo, fetchMusic, playSongIds, musicPlay, musicPause, musicNext, musicPrevious, musicStop } from 'lacona-api'
-import { Command } from 'lacona-command'
+import { isDemo, fetchMusic, playSongIds, musicPlay, musicPause, musicNext, musicPrevious, musicStop, setTimeout } from 'lacona-api'
+import { Command } from 'lacona-phrases'
+
+import _ from 'lodash'
 import { playDemoExecute, controlDemoExecute } from './demo'
 import { Observable } from 'rxjs/Observable'
 import { switchMap } from 'rxjs/operator/switchMap'
@@ -31,14 +32,15 @@ const Music = {
         ::switchMap(() => {
           return new Observable(observer => {
             fetchMusic((err, music) => {
-              process.nextTick(() => {
+              setTimeout(() => {
                 if (err) {
-                  observer.error({update, music: []})
+                  console.error(err)
+                  observer.next({update, music: []})
                 } else {
                   observer.next({update, music})
                   observer.complete()
                 }
-              })
+              }, 0)
             })
           })
         })
@@ -47,7 +49,7 @@ const Music = {
   }
 }
 
-export const PlaySpecific = {
+const PlaySpecific = {
   extends: [Command],
 
   demoExecute: playDemoExecute,
@@ -122,7 +124,7 @@ export const PlaySpecific = {
   }
 }
 
-export const Control = {
+const Control = {
   extends: [Command],
 
   demoExecute: controlDemoExecute,
@@ -169,4 +171,4 @@ export const Control = {
   }
 }
 
-export const extensions = [PlaySpecific, Control]
+export default [PlaySpecific, Control]
