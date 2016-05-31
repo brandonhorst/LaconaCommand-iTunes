@@ -1,6 +1,6 @@
 /** @jsx createElement */
 import { createElement } from 'elliptical'
-import { isDemo, fetchMusic, playSongIds, musicPlay, musicPause, musicNext, musicPrevious, musicStop, setTimeout } from 'lacona-api'
+import { isDemo, fetchMusic, playSongIds, musicPlay, musicPause, musicNext, musicPrevious, musicStop } from 'lacona-api'
 import { Command } from 'lacona-phrases'
 
 import _ from 'lodash'
