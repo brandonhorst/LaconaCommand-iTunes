@@ -1,6 +1,6 @@
 {
   "name": "lacona-itunes",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Lacona Command to play media in iTunes",
   "lacona": {
     "extensions": "build/extensions.js"
