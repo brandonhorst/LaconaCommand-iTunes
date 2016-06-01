@@ -23,9 +23,9 @@ export function playDemoExecute (result) {
     } else if (artist) {
       return [{text: 'all songs by '}, {text: artist, argument: 'artist'}]
     } else if (genre) {
-      return [{text: 'all songs in the '}, {text: genre, argument: 'genre'}, {text: 'genre'}]
+      return [{text: 'all songs in the '}, {text: genre, argument: 'genre'}, {text: ' genre'}]
     } else if (playlist) {
-      return [{text: 'all songs in the '}, {text: playlist, argument: 'playlist'}, {text: 'playlist'}]
+      return [{text: 'all songs in the '}, {text: playlist, argument: 'playlist'}, {text: ' playlist'}]
     } else if (composer) {
       return [{text: 'all songs composed by '}, {text: composer, argument: 'composer'}]
     }
