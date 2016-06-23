@@ -30,18 +30,8 @@ const Music = {
           return tap::first()
         })
         ::switchMap(() => {
-          return new Observable(observer => {
-            fetchMusic((err, music) => {
-              setTimeout(() => {
-                if (err) {
-                  console.error(err)
-                  observer.next({update, music: []})
-                } else {
-                  observer.next({update, music})
-                  observer.complete()
-                }
-              }, 0)
-            })
+          return fetchMusic().then((music) => {
+            return {update, music}
           })
         })
         ::startWith({update, music: []})
