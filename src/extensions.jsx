@@ -49,11 +49,8 @@ const PlaySpecific = {
     playSongIds({ids})
   },
 
-  observe () {
-    return <Music />
-  },
-
-  describe ({data}) {
+  describe ({observe}) {
+    const data = observe(<Music />)
     const tracks = _.chain(data.music)
       .filter('name')
       .map(({name, id}) => ({text: name, value: {song: name, ids: [id]}}))
@@ -91,21 +88,21 @@ const PlaySpecific = {
         <tap inbound={callUpdate} id='music'>
           <repeat unique separator={<list items={[' and ', ', ', ', and ']} limit={1} />}>
             <choice>
-              <label text='song'>
+              <placeholder argument='song'>
                 <list items={tracks} strategy='fuzzy' limit={10} />
-              </label>
-              <label text='album'>
+              </placeholder>
+              <placeholder argument='album'>
                 <list items={albums} strategy='fuzzy' limit={10} />
-              </label>
-              <label text='artist'>
+              </placeholder>
+              <placeholder argument='artist'>
                 <list items={artists} strategy='fuzzy' limit={10} />
-              </label>
-              <label text='genre'>
+              </placeholder>
+              <placeholder argument='genre'>
                 <list items={genres} strategy='fuzzy' limit={10} />
-              </label>
-              <label text='composer'>
+              </placeholder>
+              <placeholder argument='composer'>
                 <list items={composers} strategy='fuzzy' limit={10} />
-              </label>
+              </placeholder>
             </choice>
           </repeat>
         </tap>
