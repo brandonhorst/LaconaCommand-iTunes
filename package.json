@@ -1,6 +1,6 @@
 {
   "name": "lacona-itunes",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Lacona Command to play media in iTunes",
   "scripts": {
     "build": "babel src --out-dir lib",
