@@ -6,10 +6,12 @@ import { Command } from 'lacona-phrases'
 import _ from 'lodash'
 import { playDemoExecute, controlDemoExecute } from './demo'
 import { Observable } from 'rxjs/Observable'
+import { of as ofObservable } from 'rxjs/observable/of'
 import { switchMap } from 'rxjs/operator/switchMap'
 import { mergeMap } from 'rxjs/operator/mergeMap'
 import { first } from 'rxjs/operator/first'
 import { startWith } from 'rxjs/operator/startWith'
+import { concat } from 'rxjs/operator/concat'
 
 const Music = {
   fetch ({activate}) {
@@ -25,7 +27,8 @@ const Music = {
       const tap = new Observable(observer => { tapObserver = observer })
       const update = () => tapObserver.next()
 
-      return activate
+      return ofObservable(true)
+        ::concat(activate)
         ::mergeMap(() => {
           return tap::first()
         })
@@ -49,7 +52,11 @@ const PlaySpecific = {
     playSongIds({ids})
   },
 
-  describe ({observe}) {
+  describe ({observe, config}) {
+    if (!config.enablePlay) {
+      return null
+    }
+
     const data = observe(<Music />)
     const tracks = _.chain(data.music)
       .filter('name')
@@ -87,7 +94,7 @@ const PlaySpecific = {
         <literal text='play ' category='action' />
         <tap inbound={callUpdate} id='music'>
           <repeat unique separator={<list items={[' and ', ', ', ', and ']} limit={1} />}>
-            <choice>
+            <choice annotation={{type: 'icon', value: '/Applications/iTunes.app'}}>
               <placeholder argument='song'>
                 <list items={tracks} strategy='fuzzy' limit={10} />
               </placeholder>
@@ -130,28 +137,32 @@ const Control = {
     }
   },
 
-  describe () {
+  describe ({config}) {
+    if (!config.enableControl) {
+      return null
+    }
+
     return (
       <choice>
         <sequence>
-          <literal text='play ' category='action' />
-          <choice merge={true} id='verb' limit={2}>
-            <list items={['current song', 'current track', 'music']} value='play' limit={1} category='action' />
-            <list items={['previous song', 'previous track', 'last song', 'last track']} value='previous' limit={1} category='action' />
-            <list items={['next song', 'next track']} value='next' limit={1} category='action' />
+          <literal text='play ' />
+          <choice merge={true} id='verb' limit={2} annotation={{type: 'icon', value: '/Applications/iTunes.app'}}>
+            <list items={['current song', 'current track', 'music']} value='play' limit={1} category='symbol' />
+            <list items={['previous song', 'previous track', 'last song', 'last track']} value='previous' limit={1} category='symbol' />
+            <list items={['next song', 'next track']} value='next' limit={1} category='symbol' />
           </choice>
         </sequence>
         <sequence value={{verb: 'pause'}}>
-          <literal text='pause ' category='action' />
-          <list items={['current song', 'current track', 'music']} limit={1} category='action' />
+          <literal text='pause ' />
+          <list items={['current song', 'current track', 'music']} limit={1} category='symbol' annotation={{type: 'icon', value: '/Applications/iTunes.app'}} />
         </sequence>
         <sequence value={{verb: 'next'}}>
-          <literal text='skip ' category='action' />
-          <list items={['current song', 'current track']} limit={1} category='action' />
+          <literal text='skip ' />
+          <list items={['current song', 'current track']} limit={1} category='symbol' annotation={{type: 'icon', value: '/Applications/iTunes.app'}} />
         </sequence>
         <sequence value={{verb: 'stop'}}>
-          <literal text='stop ' category='action' />
-          <list items={['current song', 'current track']} limit={1} category='action' />
+          <literal text='stop ' />
+          <list items={['current song', 'current track']} limit={1} category='symbol' annotation={{type: 'icon', value: '/Applications/iTunes.app'}} />
         </sequence>
       </choice>
     )

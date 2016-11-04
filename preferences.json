@@ -1,0 +1,35 @@
+{
+  "playHeader": {
+    "label": "Play Music",
+    "type": "header",
+    "examples": [
+      "play [![](icon.png)Daft Punk](artist)",
+      "play [![](icon.png)Blonde](album)",
+      "play [![](icon.png)Fireflies](song)",
+      "play [![](icon.png)Grunge](genre)",
+      "play [![](icon.png)Lorde](artist) and [![](icon.png)The Life of Pablo](album)"
+    ]
+  },
+  "enablePlay": {
+    "title": "Enable play command",
+    "type": "boolean",
+    "default": true,
+    "separatorBelow": true
+  },
+  "controlHeader": {
+    "label": "Control Playback",
+    "type": "header",
+    "examples": [
+      "pause",
+      "stop",
+      "play next song",
+      "play previous song",
+      "play current song"
+    ]
+  },
+  "enableControl": {
+    "title": "Enable control iTunes playback",
+    "type": "boolean",
+    "default": true
+  }
+}
